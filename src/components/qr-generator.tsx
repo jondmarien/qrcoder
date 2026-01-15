@@ -329,7 +329,11 @@ export default function QrGenerator() {
             >
               Download SVG
             </Button>
-            <Button className="flex-1" onClick={handleDownloadPdf}>
+            <Button
+              className="flex-1"
+              variant="outline"
+              onClick={handleDownloadPdf}
+            >
               Download PDF
             </Button>
           </CardContent>
