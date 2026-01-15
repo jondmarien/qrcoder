@@ -4,7 +4,8 @@ import * as React from "react";
 import { useForm } from "@tanstack/react-form";
 import { QRCodeSVG } from "qrcode.react";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useDebouncer } from "@tanstack/react-pacer";
+import { FormDevtoolsPanel } from "@tanstack/react-form-devtools";
+import { useDebouncedValue } from "@tanstack/react-pacer";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ export default function QrGenerator() {
       bgColor: "#ffffff",
       fgColor: "#000000",
       includeMargin: true,
+      marginSize: 4,
     } as QrCodeConfig,
     validators: {
       onChange: qrCodeSchema,
@@ -46,12 +48,95 @@ export default function QrGenerator() {
     },
   });
 
-  // Subscribe to form state for live preview
-  // We can use form.Subscribe or just separate hooks if needed, but 'useStore' pattern is common in TanStack Form
-  // For simplicity v1, we'll access state directly in render or sub-components.
-  // Ideally, valid functionality is extracted.
+  const handleDownloadSvg = () => {
+    const wrapper = document.getElementById("qr-preview-wrapper");
+    const svg = wrapper?.querySelector("svg");
+    if (!wrapper || !svg) return;
 
-  // NOTE: TanStack Form is headless. We need to wire up fields manually.
+    const serializer = new XMLSerializer();
+    const source = serializer.serializeToString(svg);
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `qrcode-${Date.now()}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPng = () => {
+    const wrapper = document.getElementById("qr-preview-wrapper");
+    const svg = wrapper?.querySelector("svg");
+    if (!wrapper || !svg) return;
+
+    const serializer = new XMLSerializer();
+    const source = serializer.serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    // Set canvas size to match SVG or desired export size.
+    // Using actual SVG attributes for size.
+    const width = parseInt(svg.getAttribute("width") || "256");
+    const height = parseInt(svg.getAttribute("height") || "256");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+    img.onload = () => {
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      const pngUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = pngUrl;
+      link.download = `qrcode-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+  };
+
+  const handleDownloadPdf = async () => {
+    const wrapper = document.getElementById("qr-preview-wrapper");
+    const svg = wrapper?.querySelector("svg");
+    if (!wrapper || !svg) return;
+
+    const serializer = new XMLSerializer();
+    const source = serializer.serializeToString(svg);
+
+    try {
+      const { generatePdf } = await import("@/app/actions");
+      const result = await generatePdf(source);
+
+      if (result.success && result.pfBase64) {
+        const byteCharacters = atob(result.pfBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `qrcode-${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        alert("Failed to generate PDF");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating PDF");
+    }
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -216,22 +301,7 @@ export default function QrGenerator() {
             <form.Subscribe
               selector={(state) => state.values}
               children={(values) => (
-                <div
-                  style={{
-                    background: values.bgColor,
-                    padding: values.includeMargin ? "20px" : "0",
-                  }}
-                >
-                  <QRCodeSVG
-                    value={values.value || "https://chron0.tech"}
-                    size={values.size}
-                    level={values.minLevel}
-                    bgColor={values.bgColor}
-                    fgColor={values.fgColor}
-                    includeMargin={false} // Managed by container padding for better visual control or passed true if needed
-                    className="max-w-full h-auto"
-                  />
-                </div>
+                <QrPreview values={values as QrCodeConfig} />
               )}
             />
           </CardContent>
@@ -248,25 +318,50 @@ export default function QrGenerator() {
             <Button
               className="flex-1"
               variant="outline"
-              onClick={() => alert("PNG Download Logic ToDo")}
+              onClick={handleDownloadPng}
             >
               Download PNG
             </Button>
             <Button
               className="flex-1"
               variant="outline"
-              onClick={() => alert("SVG Download Logic ToDo")}
+              onClick={handleDownloadSvg}
             >
               Download SVG
             </Button>
-            <Button className="flex-1" onClick={() => alert("PDF Logic ToDo")}>
+            <Button className="flex-1" onClick={handleDownloadPdf}>
               Download PDF
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <TanStackFormDevTools initialIsOpen={false} />
+      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === "development" && <FormDevtoolsPanel />}
+    </div>
+  );
+}
+
+function QrPreview({ values }: { values: QrCodeConfig }) {
+  const [debouncedValues] = useDebouncedValue(values, { wait: 300 });
+
+  return (
+    <div
+      id="qr-preview-wrapper"
+      style={{
+        background: debouncedValues.bgColor,
+      }}
+      className="transition-colors duration-200"
+    >
+      <QRCodeSVG
+        value={debouncedValues.value || ""}
+        size={debouncedValues.size}
+        level={debouncedValues.minLevel}
+        bgColor={debouncedValues.bgColor}
+        fgColor={debouncedValues.fgColor}
+        marginSize={debouncedValues.includeMargin ? 4 : 0}
+        className="max-w-full h-auto"
+      />
     </div>
   );
 }

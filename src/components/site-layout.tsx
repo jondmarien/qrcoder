@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Github, QrCode } from "lucide-react";
+import { QrCode } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/mode-toggle";
