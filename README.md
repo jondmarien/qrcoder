@@ -2,6 +2,8 @@
 
 **QRCoder** is a modern, responsive, and high-performance QR code generator application built with **Next.js 16** and **React 19**. It offers real-time previewing, extensive customization options, and high-quality export capabilities (PNG, SVG, PDF).
 
+<img width="1868" height="1245" alt="image" src="https://github.com/user-attachments/assets/a8d90a5b-df54-4eab-8ab3-06bc9aaf4e5a" />
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-16.1-black)
 ![React](https://img.shields.io/badge/React-19-blue)
