@@ -4,6 +4,7 @@ import * as React from "react";
 import { useForm } from "@tanstack/react-form";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { FormDevtoolsPanel } from "@tanstack/react-form-devtools";
+import { ZodError } from "zod";
 
 import {
   Card,
@@ -30,7 +31,17 @@ export default function QrGenerator() {
       marginSize: 4,
     } as QrCodeConfig,
     validators: {
-      onChange: qrCodeSchema,
+      onChange: ({ value }) => {
+        try {
+          qrCodeSchema.parse(value);
+          return undefined;
+        } catch (e) {
+          if (e instanceof ZodError) {
+            return "Invalid configuration";
+          }
+          return undefined;
+        }
+      },
     },
     onSubmit: async ({ value }) => {
       console.log(value);

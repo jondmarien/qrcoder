@@ -1,8 +1,5 @@
 "use client";
 
-import type { ReactFormExtendedApi } from "@tanstack/react-form";
-import type { QrCodeConfig } from "@/lib/schemas";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,7 +47,7 @@ export function QrForm({ form }: QrFormProps) {
                 <Input
                   id={field.name}
                   name={field.name}
-                  value={field.state.value}
+                  value={String(field.state.value)}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="https://example.com"
@@ -67,18 +64,21 @@ export function QrForm({ form }: QrFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <form.Field
               name="size"
-              children={(field: any) => (
-                <div className="space-y-2">
-                  <Label>Size ({field.state.value}px)</Label>
-                  <Slider
-                    value={[field.state.value]}
-                    onValueChange={(val) => field.handleChange(val[0])}
-                    min={128}
-                    max={1024}
-                    step={32}
-                  />
-                </div>
-              )}
+              children={(field: any) => {
+                const sizeValue = Number(field.state.value) || 256;
+                return (
+                  <div className="space-y-2">
+                    <Label>Size ({sizeValue}px)</Label>
+                    <Slider
+                      value={[sizeValue]}
+                      onValueChange={(val) => field.handleChange(val[0])}
+                      min={128}
+                      max={1024}
+                      step={32}
+                    />
+                  </div>
+                );
+              }}
             />
             <form.Field
               name="minLevel"
@@ -86,7 +86,7 @@ export function QrForm({ form }: QrFormProps) {
                 <div className="space-y-2">
                   <Label>Error Correction</Label>
                   <Select
-                    value={field.state.value}
+                    value={String(field.state.value)}
                     onValueChange={(val) =>
                       field.handleChange(val as "L" | "M" | "Q" | "H")
                     }
@@ -116,11 +116,11 @@ export function QrForm({ form }: QrFormProps) {
                     <Input
                       type="color"
                       className="w-12 p-1 h-9 cursor-pointer"
-                      value={field.state.value}
+                      value={String(field.state.value)}
                       onChange={(e) => field.handleChange(e.target.value)}
                     />
                     <Input
-                      value={field.state.value}
+                      value={String(field.state.value)}
                       onChange={(e) => field.handleChange(e.target.value)}
                       className="font-mono"
                     />
@@ -137,11 +137,11 @@ export function QrForm({ form }: QrFormProps) {
                     <Input
                       type="color"
                       className="w-12 p-1 h-9 cursor-pointer"
-                      value={field.state.value}
+                      value={String(field.state.value)}
                       onChange={(e) => field.handleChange(e.target.value)}
                     />
                     <Input
-                      value={field.state.value}
+                      value={String(field.state.value)}
                       onChange={(e) => field.handleChange(e.target.value)}
                       className="font-mono"
                     />
@@ -162,7 +162,7 @@ export function QrForm({ form }: QrFormProps) {
                   </p>
                 </div>
                 <Switch
-                  checked={field.state.value}
+                  checked={!!field.state.value}
                   onCheckedChange={field.handleChange}
                 />
               </div>
